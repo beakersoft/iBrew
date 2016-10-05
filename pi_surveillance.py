@@ -1,8 +1,6 @@
 # import the necessary packages
 from pyimagesearch.tempimage import TempImage
-from dropbox.client import DropboxOAuth2FlowNoRedirect
-from dropbox.client import DropboxClient
-from picamera.array import PiRGBArray
+import azure
 import argparse
 import warnings
 import datetime
@@ -17,27 +15,13 @@ ap.add_argument("-c", "--conf", required=True,
 	help="path to the JSON configuration file")
 args = vars(ap.parse_args())
  
-# filter warnings, load the configuration and initialize the Dropbox
-# client
+# filter warnings, load the configuration 
 warnings.filterwarnings("ignore")
 conf = json.load(open(args["conf"]))
 client = None
 
-if conf["use_dropbox"]:
-	# connect to dropbox and start the session authorization process
-	flow = DropboxOAuth2FlowNoRedirect(conf["dropbox_key"], conf["dropbox_secret"])
-	print "[INFO] Authorize this application: {}".format(flow.start())
-	authCode = raw_input("Enter auth code here: ").strip()
- 
-	# finish the authorization and grab the Dropbox client
-	(accessToken, userID) = flow.finish(authCode)
-	client = DropboxClient(accessToken)
-	print "[SUCCESS] dropbox account linked"
-
 # initialize the camera and grab a reference to the raw camera capture
-#camera = PiCamera()
 camera = cv2.VideoCapture(0)
-rawCapture = PiRGBArray(camera, size=tuple(conf["resolution"]))
  
 # allow the camera to warmup, then initialize the average frame, last
 # uploaded timestamp, and frame motion counter
@@ -97,7 +81,6 @@ while True:
                 cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
                 text = "Occupied"
 
-
         # draw the text and timestamp on the frame
         ts = timestamp.strftime("%A %d %B %Y %I:%M:%S%p")
         cv2.putText(frame, "Room Status: {}".format(text), (10, 20),
@@ -115,18 +98,8 @@ while True:
                         # high enough
                         if motionCounter >= conf["min_motion_frames"]:
 				print "[INFO] detected movement...."
-                                # check to see if dropbox sohuld be used
-                                if conf["use_dropbox"]:
-                                        # write the image to temporary file
-                                        t = TempImage()
-                                        cv2.imwrite(t.path, frame)
-
-                                        # upload the image to Dropbox and cleanup the tempory image
-                                        print "[UPLOAD] {}".format(ts)
-                                        path = "{base_path}/{timestamp}.jpg".format(
-                                                base_path=conf["dropbox_base_path"], timestamp=ts)
-                                        client.put_file(path, open(t.path, "rb"))
-                                        t.cleanup()
+				timestr = time.strftime("%Y%m%d-%H%M%S")
+				cv2.imwrite("/home/pi/webcam/cap" + timestr + ".jpg", frame)
 
                                 # update the last uploaded timestamp and reset the motion
                                 # counter
