@@ -1,6 +1,7 @@
+#!/usr/bin/env python
 # import the necessary packages
 from pyimagesearch.tempimage import TempImage
-import azure
+from azure.storage.blob import BlobService
 import argparse
 import warnings
 import datetime
@@ -8,6 +9,14 @@ import imutils
 import json
 import time
 import cv2
+
+def LogMessage( str ):
+
+	timestamp = datetime.datetime.now()			
+	ts = timestamp.strftime("%A %d %B %Y %I:%M:%S%p")
+	with open("/home/pi/iBrew/iBrew.log", "a") as text_file:
+		text_file.write("\n[INFO]: " + ts + " " + str)
+	return
 
 # construct the argument parser and parse the arguments
 ap = argparse.ArgumentParser()
@@ -20,12 +29,15 @@ warnings.filterwarnings("ignore")
 conf = json.load(open(args["conf"]))
 client = None
 
+#create our azure object
+blob_service = BlobService(account_name=conf["blob_storage"], account_key=conf["blob_key"])
+
 # initialize the camera and grab a reference to the raw camera capture
 camera = cv2.VideoCapture(0)
  
 # allow the camera to warmup, then initialize the average frame, last
 # uploaded timestamp, and frame motion counter
-print "[INFO] warming up..."
+LogMessage("warming up...")
 time.sleep(conf["camera_warmup_time"])
 avg = None
 lastUploaded = datetime.datetime.now()
@@ -50,7 +62,7 @@ while True:
 
 	# if the average frame is None, initialize it
         if avg is None:
-                print "[INFO] starting background model..."
+                LogMessage("starting background model...")
                 avg = gray.copy().astype("float")
                 continue
 
@@ -68,7 +80,6 @@ while True:
         (cnts, _) = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL,
                 cv2.CHAIN_APPROX_SIMPLE)
 
-
         # loop over the contours
         for c in cnts:
                 #if the contour is too small, ignore it
@@ -83,26 +94,24 @@ while True:
 
         # draw the text and timestamp on the frame
         ts = timestamp.strftime("%A %d %B %Y %I:%M:%S%p")
-        cv2.putText(frame, "Room Status: {}".format(text), (10, 20),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
-        cv2.putText(frame, ts, (10, frame.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX,
-                0.35, (0, 0, 255), 1)
-        # check to see if the room is occupied
+
         if text == "Occupied":
                 # check to see if enough time has passed between uploads
                 if (timestamp - lastUploaded).seconds >= conf["min_upload_seconds"]:
                         # increment the motion counter
                         motionCounter += 1
 
-                        # check to see if the number of frames with consistent motion is
-                        # high enough
+                        # check to see if the number of frames with consistent motion is high enough
                         if motionCounter >= conf["min_motion_frames"]:
-				print "[INFO] detected movement...."
+				LogMessage("detected movement....")
 				timestr = time.strftime("%Y%m%d-%H%M%S")
-				cv2.imwrite("/home/pi/webcam/cap" + timestr + ".jpg", frame)
+				t = TempImage()
+				cv2.imwrite(t.path, frame)
+				blob_service.put_blob('uploadimages', 'grab' + timestr + '.jpg', file(t.path).read(),'BlockBlob')
+				LogMessage("uploaded file grab" + timestr + ".jpg to azure...")
+				t.cleanup()
 
-                                # update the last uploaded timestamp and reset the motion
-                                # counter
+                                # update the last uploaded timestamp and reset the motion counter
                                 lastUploaded = timestamp
                                 motionCounter = 0
 
