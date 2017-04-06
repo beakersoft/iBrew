@@ -1,10 +1,11 @@
 {
-	"show_video": false,
-	"min_upload_seconds": 5.0,
-	"min_motion_frames": 10,
-	"camera_warmup_time": 2.5,
-	"delta_thresh": 5,
-	"resolution": [640, 480],
-	"fps": 16,
-	"min_area": 5000
+        "min_upload_seconds": 5.0,
+        "min_motion_frames": 8,
+        "camera_warmup_time": 2.5,
+        "delta_thresh": 5,
+        "resolution": [640, 480],
+        "fps": 16,
+        "min_area": 5000,
+        "blob_storage": "functionb562bcd3be7b",
+        "blob_key": "qQcfxyFq/1UXepOBx88pU5JgHuYhQaMJ6wZEmbH3Ox73n8SZ8OjpPKmn4iIIv86zd4Zjl/Byw3seop8s72Mdng=="
 }

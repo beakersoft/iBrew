@@ -50,6 +50,8 @@ motionCounter = 0
 # capture frames from the camera
 for f in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
         # grab the current frame and initialize the occupied/unoccupied  text
+	
+	rawCapture.truncate(0)
         frame = f.array
 	timestamp = datetime.datetime.now()
         text = "Unoccupied"
@@ -119,8 +121,5 @@ for f in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True
         else:
                 motionCounter = 0
 
-	# if the `q` key is pressed, break from the lop
-		if key == ord("q"):
-			break
-
 	rawCapture.truncate(0)
+
